@@ -11,19 +11,24 @@ enum class log_level_t { error, warning, debug };
   #define LOG_SPDLOG
 #endif
 
+#ifndef LOG_PATH
+  #warning LOG_PATH is unset, disabling logging to file
+  #define LOG_PATH ""
+#endif
+
 #ifdef LOG_SPDLOG
   void log_str_spdlog(const std::string& str, log_level_t lvl, const char* log_path = "");
 
   #if defined(LOG_FMT)
     #include <spdlog/fmt/fmt.h>
     template<typename... Args>
-    void log(const char* str, int str_size, log_level_t lvl, Args&&... args)
+    inline void log(const char* str, int str_size, log_level_t lvl, Args&&... args)
     {
-      log_str_spdlog(fmt::format(str, args...), lvl);
+      log_str_spdlog(fmt::format(str, args...), lvl, LOG_PATH);
     }
   #elif defined(LOG_PRINTF)
     template<typename... Args, int max_format_length = 10>
-    void log(const char* str, int str_size, log_level_t lvl, Args&&... args)
+    inline void log(const char* str, int str_size, log_level_t lvl, Args&&... args)
     {
       std::string std_str;
       constexpr int extra_room = sizeof...(Args) * max_format_length;
@@ -37,7 +42,7 @@ enum class log_level_t { error, warning, debug };
         sprintf(&std_str[0], str, args...);
       }
 
-      log_str_spdlog(std_str, lvl);
+      log_str_spdlog(std_str, lvl, LOG_PATH);
     }
   #else
     #error You need to specify either LOG_FMT or LOG_PRINTF
@@ -45,13 +50,13 @@ enum class log_level_t { error, warning, debug };
 #endif
 
 template<int str_size, typename... Args>
-void log(const char(&str)[str_size], log_level_t lvl, Args&&... args)
+inline void log(const char(&str)[str_size], log_level_t lvl, Args&&... args)
 {
   log(str, str_size, lvl, std::forward<Args>(args)...);
 }
 
 template<typename... Args>
-void log(const char *str, log_level_t lvl, const Args&... args)
+inline void log(const char *str, log_level_t lvl, const Args&... args)
 {
   const int str_size = strlen(str) + 1;
   log(str, str_size, lvl, std::forward<Args>(args)...);
