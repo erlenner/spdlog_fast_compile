@@ -36,10 +36,10 @@ enum class log_level_t { error, warning, debug };
     
       int written = snprintf(&std_str[0], std_str.size(), str, args...);
     
-      if (written >= std_str.size())
+      if (written > std_str.size())
       {
-        std_str.resize(written + 1);
-        sprintf(&std_str[0], str, args...);
+        std_str.resize(written);
+        snprintf(&std_str[0], std_str.size(), str, args...);
       }
 
       log_str_spdlog(std_str, lvl, LOG_PATH);
