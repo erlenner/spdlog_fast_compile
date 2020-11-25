@@ -18,21 +18,22 @@ struct src_info_t
   #define LOG_SPDLOG
 #endif
 
-#ifndef LOG_PATH
-  #warning LOG_PATH is unset, disabling logging to file
-  #define LOG_PATH ""
-#endif
-
 #ifdef LOG_SPDLOG
-  void log_str_spdlog(const std::string& str, log_level_t lvl, const char* log_path, src_info_t&& src_info);
+  void log_init_spdlog(const char *log_path, const char *format);
+  void log_str_spdlog(const std::string& str, log_level_t lvl, src_info_t&& src_info);
 
   #ifndef LOG_CPP
+
+    #define log_init(...) log_init_spdlog(__VA_ARGS__)
+    #define log(fmt, lvl, ...) log_impl(fmt, lvl, src_info_t{ .file_name = __FILE__, .function_name = static_cast<const char *>(__FUNCTION__), .line_number = __LINE__ }, __VA_ARGS__)
+
+
     #if defined(LOG_FMT)
       #include <spdlog/fmt/fmt.h>
       template<typename... Args>
       inline void log_impl(const char* str, int str_size, log_level_t lvl, src_info_t&& src_info, Args&&... args)
       {
-        log_str_spdlog(fmt::format(str, args...), lvl, LOG_PATH, std::forward<src_info_t>(src_info));
+        log_str_spdlog(fmt::format(str, args...), lvl, std::forward<src_info_t>(src_info));
       }
     #elif defined(LOG_PRINTF)
       template<typename... Args, int max_format_length = 10>
@@ -50,7 +51,7 @@ struct src_info_t
           snprintf(&std_str[0], std_str.size(), str, args...);
         }
 
-        log_str_spdlog(std_str, lvl, LOG_PATH, std::forward<src_info_t>(src_info));
+        log_str_spdlog(std_str, lvl, std::forward<src_info_t>(src_info));
       }
     #else
       #error You need to specify either LOG_FMT or LOG_PRINTF
@@ -61,7 +62,7 @@ struct src_info_t
     {
       log_impl(str, str_size, lvl, std::forward<src_info_t>(src_info), std::forward<Args>(args)...);
     }
-    
+
     template<typename... Args>
     inline void log_impl(const char *str, log_level_t lvl, src_info_t&& src_info, const Args&... args)
     {
@@ -69,7 +70,6 @@ struct src_info_t
       log_impl(str, str_size, lvl, std::forward<src_info_t>(src_info), std::forward<Args>(args)...);
     }
 
-    #define log(fmt, lvl, ...) log_impl(fmt, lvl, src_info_t{ .file_name = __FILE__, .function_name = static_cast<const char *>(__FUNCTION__), .line_number = __LINE__ }, __VA_ARGS__)
   #endif
 
 #endif
