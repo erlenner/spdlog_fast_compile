@@ -6,7 +6,14 @@
 
 enum class log_level_t { error, warning, debug };
 
-// use spdlog by default:
+struct src_info_t
+{
+  const char* file_name;
+  const char* function_name;
+  int line_number;
+};
+
+// use spdlog by default
 #ifndef LOG_SPDLOG
   #define LOG_SPDLOG
 #endif
@@ -17,50 +24,56 @@ enum class log_level_t { error, warning, debug };
 #endif
 
 #ifdef LOG_SPDLOG
-  void log_str_spdlog(const std::string& str, log_level_t lvl, const char* log_path = "");
+  void log_str_spdlog(const std::string& str, log_level_t lvl, const char* log_path, src_info_t&& src_info);
 
-  #if defined(LOG_FMT)
-    #include <spdlog/fmt/fmt.h>
-    template<typename... Args>
-    inline void log(const char* str, int str_size, log_level_t lvl, Args&&... args)
-    {
-      log_str_spdlog(fmt::format(str, args...), lvl, LOG_PATH);
-    }
-  #elif defined(LOG_PRINTF)
-    template<typename... Args, int max_format_length = 10>
-    inline void log(const char* str, int str_size, log_level_t lvl, Args&&... args)
-    {
-      std::string std_str;
-      constexpr int extra_room = sizeof...(Args) * max_format_length;
-      std_str.resize(str_size + extra_room);
-    
-      int written = snprintf(&std_str[0], std_str.size(), str, args...);
-    
-      if (written > std_str.size())
+  #ifndef LOG_CPP
+    #if defined(LOG_FMT)
+      #include <spdlog/fmt/fmt.h>
+      template<typename... Args>
+      inline void log_impl(const char* str, int str_size, log_level_t lvl, src_info_t&& src_info, Args&&... args)
       {
-        std_str.resize(written);
-        snprintf(&std_str[0], std_str.size(), str, args...);
+        log_str_spdlog(fmt::format(str, args...), lvl, LOG_PATH, std::forward<src_info_t>(src_info));
       }
+    #elif defined(LOG_PRINTF)
+      template<typename... Args, int max_format_length = 10>
+      inline void log_impl(const char* str, int str_size, log_level_t lvl, src_info_t&& src_info, Args&&... args)
+      {
+        std::string std_str;
+        constexpr int extra_room = sizeof...(Args) * max_format_length;
+        std_str.resize(str_size + extra_room);
+      
+        int written = snprintf(&std_str[0], std_str.size(), str, args...);
+      
+        if (written > std_str.size())
+        {
+          std_str.resize(written);
+          snprintf(&std_str[0], std_str.size(), str, args...);
+        }
 
-      log_str_spdlog(std_str, lvl, LOG_PATH);
+        log_str_spdlog(std_str, lvl, LOG_PATH, std::forward<src_info_t>(src_info));
+      }
+    #else
+      #error You need to specify either LOG_FMT or LOG_PRINTF
+    #endif
+
+    template<int str_size, typename... Args>
+    inline void log_impl(const char(&str)[str_size], log_level_t lvl, src_info_t&& src_info, Args&&... args)
+    {
+      log_impl(str, str_size, lvl, std::forward<src_info_t>(src_info), std::forward<Args>(args)...);
     }
-  #else
-    #error You need to specify either LOG_FMT or LOG_PRINTF
+    
+    template<typename... Args>
+    inline void log_impl(const char *str, log_level_t lvl, src_info_t&& src_info, const Args&... args)
+    {
+      const int str_size = strlen(str) + 1;
+      log_impl(str, str_size, lvl, std::forward<src_info_t>(src_info), std::forward<Args>(args)...);
+    }
+
+    #define log(fmt, lvl, ...) log_impl(fmt, lvl, src_info_t{ .file_name = __FILE__, .function_name = static_cast<const char *>(__FUNCTION__), .line_number = __LINE__ }, __VA_ARGS__)
   #endif
+
 #endif
 
-template<int str_size, typename... Args>
-inline void log(const char(&str)[str_size], log_level_t lvl, Args&&... args)
-{
-  log(str, str_size, lvl, std::forward<Args>(args)...);
-}
-
-template<typename... Args>
-inline void log(const char *str, log_level_t lvl, const Args&... args)
-{
-  const int str_size = strlen(str) + 1;
-  log(str, str_size, lvl, std::forward<Args>(args)...);
-}
 
 #define log_debug(str, ...) log(str, log_level_t::debug, __VA_ARGS__)
 

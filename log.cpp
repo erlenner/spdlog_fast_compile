@@ -2,6 +2,7 @@
 #define LOG_FMT
 #define LOG_PRINTF
 #define LOG_PATH ""
+#define LOG_CPP
 #include "log.h"
 
 
@@ -10,7 +11,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-void log_str_impl_spdlog(const std::string& str, spdlog::level::level_enum lvl, const char* log_path)
+void log_str_impl_spdlog(const std::string& str, spdlog::level::level_enum lvl, const char* log_path, spdlog::source_loc src_info)
 {
   static std::shared_ptr<spdlog::logger> logger;
 
@@ -41,21 +42,15 @@ void log_str_impl_spdlog(const std::string& str, spdlog::level::level_enum lvl, 
     first_run = false;
   }
 
-  logger->log(lvl, str);
+  logger->log(src_info, lvl, str);
 }
 
-void log_str_spdlog(const std::string& str, log_level_t lvl, const char* log_path)
+void log_str_spdlog(const std::string& str, log_level_t lvl, const char* log_path, src_info_t&& src_info)
 {
   switch(lvl)
   {
     case log_level_t::debug:
-      log_str_impl_spdlog(str, spdlog::level::debug, log_path);
+      log_str_impl_spdlog(str, spdlog::level::debug, log_path, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
       break;
   }
 }
-
-
-#define log_impl(lvl, ...) do { \
-  log_init(); \
-  spdlog::log(spdlog::level:: lvl, __VA_ARGS__); \
-} while(0)
