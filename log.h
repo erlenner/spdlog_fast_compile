@@ -12,7 +12,7 @@ enum class log_level_t { error, warning, debug };
 #endif
 
 #ifdef LOG_SPDLOG
-  void log_str_spdlog(const std::string& str, log_level_t lvl);
+  void log_str_spdlog(const std::string& str, log_level_t lvl, const char* log_path = "");
 
   #if defined(LOG_FMT)
     #include <spdlog/fmt/fmt.h>
@@ -36,7 +36,7 @@ enum class log_level_t { error, warning, debug };
         std_str.resize(written + 1);
         sprintf(&std_str[0], str, args...);
       }
-    
+
       log_str_spdlog(std_str, lvl);
     }
   #else
@@ -61,22 +61,22 @@ void log(const char *str, log_level_t lvl, const Args&... args)
 
 #ifdef LOG_PROTO
   #include <google/protobuf/text_format.h>
-  
+
   template<typename Message, typename Logger>
   std::enable_if_t<std::is_base_of<::google::protobuf::Message, Message>::value, int>
   log_proto(const Message& msg, Logger logger)
   {
     std::string buf;
     bool success = google::protobuf::TextFormat::PrintToString(msg, &buf);
-  
+
     logger(buf.c_str());
-  
+
     int rc = success ? 0 : -1;
-  
+
     return rc;
   }
-  
-  #define log_proto_debug(msg) log_proto(msg, [](const char* s){ log("\n{}", debug, s); })
+
+  #define log_proto_debug(msg) log_proto(msg, [](const char* s){ log_debug(s); })
 #endif
 
 #endif
