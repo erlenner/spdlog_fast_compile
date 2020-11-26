@@ -8,7 +8,6 @@
 #define LOG_FMT
 #define LOG_PRINTF
 #define LOG_PATH ""
-#define LOG_CPP
 #include "log.h"
 
 #define SPDLOG_DEFAULT_PATTERN "[%l: %s:%# (%!) %H:%M:%S.%e] %v" // https://spdlog.docsforge.com/v1.x/3.custom-formatting/#pattern-flags
@@ -38,7 +37,7 @@ std::shared_ptr<spdlog::logger> log_init_impl_spdlog(const char* log_path = "", 
     spdlog::register_logger(logger);
     spdlog::set_default_logger(logger);
 
-    //spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::debug); // default level is debug
     spdlog::cfg::load_env_levels();
 
     if (strlen(format) > 0)

@@ -7,18 +7,17 @@
 #include <utility>
 
 // interface
-#ifndef LOG_CPP
-  #define log(fmt, lvl, ...) log_impl(fmt, lvl, create_log_src_info_t() __VA_OPT__(,) __VA_ARGS__)
-  #define log_error(str, ...) log(str, log_level_t::error, __VA_ARGS__)
-  #define log_warning(str, ...) log(str, log_level_t::warning, __VA_ARGS__)
-  #define log_debug(str, ...) log(str, log_level_t::debug, __VA_ARGS__)
+#define log_log(fmt, lvl, ...) log_impl(fmt, lvl, create_log_src_info_t() __VA_OPT__(,) __VA_ARGS__)
+#define log_error(str, ...) log_log(str, log_level_t::error, __VA_ARGS__)
+#define log_warning(str, ...) log_log(str, log_level_t::warning, __VA_ARGS__)
+#define log_debug(str, ...) log_log(str, log_level_t::debug, __VA_ARGS__)
 
-  #define log_init(...) log_init_impl(__VA_ARGS__)
-  #define log_str(...) log_str_impl(__VA_ARGS__)
-#endif
+#define log_init(...) log_init_impl(__VA_ARGS__)
+#define log_str(...) log_str_impl(__VA_ARGS__)
 
 enum class log_level_t { error, warning, debug };
 
+// struct for recording the origin of the log function call
 struct log_src_info_t
 {
   const char* file_name;
@@ -58,9 +57,9 @@ struct log_src_info_t
       std::string std_str;
       constexpr int extra_room = sizeof...(Args) * max_format_length;
       std_str.resize(str_size + extra_room);
-    
+
       unsigned int written = snprintf(&std_str[0], std_str.size(), str, args...);
-    
+
       if (written > std_str.size())
       {
         std_str.resize(written);
