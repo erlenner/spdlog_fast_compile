@@ -1,3 +1,9 @@
+#define SPDLOG_EOL ""
+#include <spdlog/spdlog.h>
+#include <spdlog/cfg/env.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
 #define LOG_SPDLOG
 #define LOG_FMT
 #define LOG_PRINTF
@@ -5,13 +11,7 @@
 #define LOG_CPP
 #include "log.h"
 
-
-#include <spdlog/spdlog.h>
-#include <spdlog/cfg/env.h>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-
-#define SPDLOG_DEFAULT_PATTERN "[%L %s:%# (%!) %H:%M:%S.%e] %v" // https://spdlog.docsforge.com/v1.x/3.custom-formatting/#pattern-flags
+#define SPDLOG_DEFAULT_PATTERN "[%l: %s:%# (%!) %H:%M:%S.%e] %v" // https://spdlog.docsforge.com/v1.x/3.custom-formatting/#pattern-flags
 
 std::shared_ptr<spdlog::logger> log_init_impl_spdlog(const char* log_path = "", const char *format = "") // singleton
 {
@@ -66,10 +66,16 @@ void log_str_impl_spdlog(const std::string& str, spdlog::level::level_enum lvl, 
   logger->log(src_info, lvl, str);
 }
 
-void log_str_spdlog(const std::string& str, log_level_t lvl, src_info_t&& src_info)
+void log_str_spdlog(const std::string& str, log_level_t lvl, log_src_info_t&& src_info)
 {
   switch(lvl)
   {
+    case log_level_t::error:
+      log_str_impl_spdlog(str, spdlog::level::err, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
+      break;
+    case log_level_t::warning:
+      log_str_impl_spdlog(str, spdlog::level::warn, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
+      break;
     case log_level_t::debug:
       log_str_impl_spdlog(str, spdlog::level::debug, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
       break;

@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 3.5.1)
 project (spdlog_fast_compile)
 
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall")
 
 file(GLOB SOURCES *.cpp)
 add_executable(spdlog_fast_compile ${SOURCES})
