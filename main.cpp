@@ -1,6 +1,6 @@
 #define LOG_SPDLOG
-//#define LOG_FMT
-#define LOG_PRINTF
+#define LOG_FMT
+//#define LOG_PRINTF
 #include "log.h"
 
 
