@@ -58,14 +58,14 @@ void spdlog_log_init(const char *log_path, const char *format)
 
 
 
-void spdlog_log_str_impl(const std::string& str, spdlog::level::level_enum lvl, spdlog::source_loc src_info)
+void spdlog_log_str_impl(const char* str, spdlog::level::level_enum lvl, spdlog::source_loc src_info)
 {
   static auto logger = spdlog_log_init_impl();
 
   logger->log(src_info, lvl, str);
 }
 
-void spdlog_log_str(const std::string& str, log_level_t lvl, log_src_info_t&& src_info)
+void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t&& src_info)
 {
   switch(lvl)
   {

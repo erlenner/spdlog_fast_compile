@@ -7,7 +7,7 @@
 #include <utility>
 
 // interface
-#define log_log(lvl, fmt, ...) log_impl(fmt, lvl, create_log_src_info_t() __VA_OPT__(,) __VA_ARGS__)
+#define log_log(lvl, fmt, ...) log_impl(fmt, lvl, create_log_src_info_t(), __VA_ARGS__)
 #define log_error(...) log_log(log_level_t::error, __VA_ARGS__)
 #define log_warning(...) log_log(log_level_t::warning, __VA_ARGS__)
 #define log_info(...) log_log(log_level_t::info, __VA_ARGS__)
@@ -47,77 +47,45 @@ struct log_src_info_t
   void spdlog_log_init(const char *log_path = "", const char *format = "");
   #define log_init_impl spdlog_log_init
 
-  void spdlog_log_str(const std::string& str, log_level_t lvl, log_src_info_t&& src_info);
+  void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t&& src_info);
   #define log_str_impl spdlog_log_str
 
   log_level_t spdlog_log_level();
   #define log_level_impl spdlog_log_level
 
-  inline void log_impl(const char* fmt, int str_size, log_level_t lvl, log_src_info_t&& src_info)
+  inline void log_impl(const char* str, int str_size, log_level_t lvl, log_src_info_t&& src_info)
   {
-    log_str_impl(std::string(fmt), lvl, std::forward<log_src_info_t>(src_info));
+    log_str_impl(str, lvl, std::forward<log_src_info_t>(src_info));
   }
 
   #if defined(LOG_FMT)
     #include <spdlog/fmt/fmt.h>
     #include <spdlog/fmt/bundled/ostream.h>
-    template<typename... Args>
-    inline void log_impl(const char* fmt, int str_size, log_level_t lvl, log_src_info_t&& src_info, Args&&... args)
-    {
-      if (lvl >= log_level()) // keep track of level internally to avoid unneccessary formatting
-      {
-        log_str_impl(fmt::format(fmt, args...), lvl, std::forward<log_src_info_t>(src_info));
-      }
-    }
+
+    #define log_impl(_fmt, lvl, src_info, ...) do { \
+      if (lvl >= log_level()) \
+      { \
+        std::string str = fmt::format(_fmt __VA_OPT__(,) __VA_ARGS__); \
+        log_str_impl(str.c_str(), lvl, std::forward<log_src_info_t>(src_info)); \
+      } \
+    } while(0)
+
   #elif defined(LOG_PRINTF)
-    template<typename... Args, int max_format_length = 10>
-    inline void log_impl(const char* fmt, int str_size, log_level_t lvl, log_src_info_t&& src_info, Args&&... args)
-    {
-      if (lvl >= log_level())
-      {
-        std::string std_str;
-        constexpr int extra_room = sizeof...(Args) * max_format_length;
-        std_str.resize(str_size + extra_room);
 
-        unsigned int written = snprintf(&std_str[0], std_str.size(), str, args...);
+    #define LOG_MAX_BUFFER_LENGTH 1024
 
-        if (written > std_str.size())
-        {
-          std_str.resize(written);
-          snprintf(&std_str[0], std_str.size()+1, str, args...);
-        }
+    #define log_impl(fmt, lvl, src_info, ...) do { \
+      if (lvl >= log_level()) \
+      { \
+        char buf[LOG_MAX_BUFFER_LENGTH]; \
+        snprintf(buf, sizeof(buf), fmt __VA_OPT__(,) __VA_ARGS__); \
+        log_str_impl(buf, lvl, std::forward<log_src_info_t>(src_info)); \
+      } \
+    } while(0)
 
-        log_str_impl(std_str, lvl, std::forward<log_src_info_t>(src_info));
-      }
-    }
   #else
     #error You need to specify either LOG_FMT or LOG_PRINTF
   #endif
-
-  template<int str_size, typename... Args>
-  inline void log_impl(const char(&str)[str_size], log_level_t lvl, log_src_info_t&& src_info, Args&&... args)
-  {
-    log_impl(str, str_size, lvl, std::forward<log_src_info_t>(src_info), std::forward<Args>(args)...);
-  }
-
-  template<typename... Args>
-  inline void log_impl(const char *str, log_level_t lvl, log_src_info_t&& src_info, const Args&... args)
-  {
-    const int str_size = strlen(str) + 1;
-    log_impl(str, str_size, lvl, std::forward<log_src_info_t>(src_info), std::forward<Args>(args)...);
-  }
-
-  template<int str_size>
-  inline void log_impl(const char(&str)[str_size], log_level_t lvl, log_src_info_t&& src_info)
-  {
-    log_impl(str, str_size, lvl, std::forward<log_src_info_t>(src_info));
-  }
-
-  inline void log_impl(const char *str, log_level_t lvl, log_src_info_t&& src_info)
-  {
-    const int str_size = strlen(str) + 1;
-    log_impl(str, str_size, lvl, std::forward<log_src_info_t>(src_info));
-  }
 
 #endif
 
