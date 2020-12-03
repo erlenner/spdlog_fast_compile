@@ -14,28 +14,11 @@ void cb_sig(int sig)
   run = 0;
 }
 
-
-struct S
-{
-  int a;
-  int b;
-};
-
-#include <iostream>
-std::ostream& operator<<(std::ostream& os, const S& rhs)
-{
-  return os << rhs.a << "\n" << rhs.b;
-}
-
 int main()
 {
   //log_init("/tmp/out.log", "[source %s] [function %!] [line %#] %v");
 
   log_debug("hei %d\n", 3);
-  log_debug("hei {}\n", 4);
-  //log_debug("hei %d\n", 5);
-  //log_debug("hei\n");
-  //log_debug("hei {}\n", 3);
 
   signal(SIGINT, cb_sig);
 
@@ -45,9 +28,6 @@ int main()
     log_debug("loopityloop\n");
 
     log_error_once("loopityloop\n");
-
-    //S s = { .a = 1, .b = 2, };
-    //log_debug("s: {}\n", s);
 
     usleep(100000);
   }

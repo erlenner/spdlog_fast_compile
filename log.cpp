@@ -14,7 +14,7 @@
 
 #define SPDLOG_DEFAULT_LEVEL spdlog::level::info
 
-std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char* log_path = "", const char *format = "") // singleton
+std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char* log_path, const char *format) // singleton
 {
   static std::shared_ptr<spdlog::logger> logger;
 
@@ -60,25 +60,25 @@ void spdlog_log_init(const char *log_path, const char *format)
 
 void spdlog_log_str_impl(const char* str, spdlog::level::level_enum lvl, spdlog::source_loc src_info)
 {
-  static auto logger = spdlog_log_init_impl();
+  static auto logger = spdlog_log_init_impl("", "");
 
   logger->log(src_info, lvl, str);
 }
 
-void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t&& src_info)
+void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t src_info)
 {
   switch(lvl)
   {
-    case log_level_t::error:
+    case log_level_error:
       spdlog_log_str_impl(str, spdlog::level::err, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
       break;
-    case log_level_t::warning:
+    case log_level_warning:
       spdlog_log_str_impl(str, spdlog::level::warn, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
       break;
-    case log_level_t::info:
+    case log_level_info:
       spdlog_log_str_impl(str, spdlog::level::info, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
       break;
-    case log_level_t::debug:
+    case log_level_debug:
       spdlog_log_str_impl(str, spdlog::level::debug, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
       break;
   }
@@ -87,22 +87,22 @@ void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t&& src_info)
 log_level_t spdlog_log_level()
 {
   log_level_t ret;
-  static auto logger = spdlog_log_init_impl();
+  static auto logger = spdlog_log_init_impl("", "");
 
   switch(logger->level())
   {
     case spdlog::level::err:
-      ret = log_level_t::error;
+      ret = log_level_error;
       break;
     case spdlog::level::warn:
-      ret = log_level_t::warning;
+      ret = log_level_warning;
       break;
     case spdlog::level::info:
-      ret = log_level_t::info;
+      ret = log_level_info;
       break;
     case spdlog::level::debug:
     default:
-      ret = log_level_t::debug;
+      ret = log_level_debug;
       break;
   }
 
