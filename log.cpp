@@ -51,7 +51,7 @@ std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char* log_path = "", 
   return logger;
 }
 
-void spdlog_init(const char *log_path, const char *format)
+void spdlog_log_init(const char *log_path, const char *format)
 {
   spdlog_log_init_impl(log_path, format);
 }

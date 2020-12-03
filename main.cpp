@@ -39,11 +39,14 @@ int main()
   //log_debug("hei\n");
   //log_debug("hei {}\n", 3);
 
+  signal(SIGINT, cb_sig);
+
 
   while(run)
   {
-    //log_debug("loopityloop\n");
-    log_debug_once("loopityloop\n");
+    log_debug("loopityloop\n");
+
+    log_error_once("loopityloop\n");
 
     //S s = { .a = 1, .b = 2, };
     //log_debug("s: {}\n", s);
