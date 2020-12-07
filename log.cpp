@@ -30,6 +30,7 @@ std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char* log_path, const
     {
       static auto file_logger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_path);
       sinks.push_back(file_logger);
+      file_logger->set_level(SPDLOG_DEFAULT_LEVEL);
     }
 
     logger = std::make_shared<spdlog::logger>("main", sinks.begin(), sinks.end());
@@ -37,8 +38,8 @@ std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char* log_path, const
     spdlog::register_logger(logger);
     spdlog::set_default_logger(logger);
 
-    spdlog::set_level(SPDLOG_DEFAULT_LEVEL); // default level
-    spdlog::cfg::load_env_levels();
+    spdlog::set_level(SPDLOG_DEFAULT_LEVEL);
+    spdlog::cfg::load_env_levels(); // override console debug level through command line: SPDLOG_LEVEL=debug ./a.out
 
     if (strlen(format) > 0)
       spdlog::set_pattern(format);

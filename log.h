@@ -68,6 +68,10 @@ typedef struct
   #endif
 
   #if defined(LOG_FMT)
+    #ifndef __cplusplus
+      #error fmt formatting is only available for C++, not C
+    #endif
+
     #include <spdlog/fmt/fmt.h>
     #include <spdlog/fmt/bundled/ostream.h>
 
