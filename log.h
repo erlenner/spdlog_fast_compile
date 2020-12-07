@@ -6,6 +6,7 @@
 #include <utility>
 #else
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #endif
 
@@ -36,6 +37,21 @@
 
 typedef enum { log_level_debug, log_level_info, log_level_warning, log_level_error } log_level_t;
 
+const char* to_string(log_level_t lvl)
+{
+  switch(lvl)
+  {
+    case log_level_error:
+      return "error";
+    case log_level_warning:
+      return "warning";
+    case log_level_info:
+      return "info";
+    case log_level_debug:
+      return "debug";
+  }
+}
+
 // struct for recording the origin of the log function call
 typedef struct
 {
@@ -44,6 +60,17 @@ typedef struct
   int line_number;
 } log_src_info_t;
 #define create_log_src_info_t() { .file_name = __FILE__, .function_name = (const char*)(__FUNCTION__), .line_number = __LINE__ }
+
+inline log_level_t log_level_from_env()
+{
+  const char *env = getenv("LOG_LEVEL");
+  printf("env: %s\n", env);
+  log_level_t stdout_lvl = log_level_info;
+  for (int i=(int)log_level_debug; i<(int)log_level_error; ++i)
+    if (strcmp(env, to_string((log_level_t)i)) == 0)
+      stdout_lvl = (log_level_t)i;
+  return stdout_lvl;
+}
 
 // use spdlog by default
 #ifndef LOG_SPDLOG
@@ -55,8 +82,12 @@ typedef struct
   extern "C"
   {
   #endif
-    void spdlog_log_init(const char *log_path, const char *format);
-    #define log_init_impl spdlog_log_init
+    void spdlog_log_init(const char *format, const char *file_path, log_level_t file_lvl, log_level_t stdout_lvl);
+    #define log_init_impl(format, file_path, file_lvl) \
+    do{ \
+      log_level_t stdout_lvl = log_level_from_env(); \
+      spdlog_log_init(format, file_path, file_lvl, stdout_lvl); \
+    }while (0)
 
     void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t src_info);
     #define log_str_impl spdlog_log_str

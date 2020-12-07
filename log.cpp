@@ -14,7 +14,22 @@
 
 #define SPDLOG_DEFAULT_LEVEL spdlog::level::info
 
-std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char* log_path, const char *format) // singleton
+spdlog::level::level_enum to_spdlog(log_level_t lvl)
+{
+  switch(lvl)
+  {
+    case log_level_error:
+      return spdlog::level::err;
+    case log_level_warning:
+      return spdlog::level::warn;
+    case log_level_info:
+      return spdlog::level::info;
+    case log_level_debug:
+      return spdlog::level::debug;
+  }
+}
+
+std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char *format = "", const char* file_path = "", spdlog::level::level_enum file_level = SPDLOG_DEFAULT_LEVEL, spdlog::level::level_enum stdout_level = SPDLOG_DEFAULT_LEVEL)
 {
   static std::shared_ptr<spdlog::logger> logger;
 
@@ -26,11 +41,11 @@ std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char* log_path, const
     static auto stdout_logger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     sinks.push_back(stdout_logger);
 
-    if (strlen(log_path) > 0)
+    if (strlen(file_path) > 0)
     {
-      static auto file_logger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_path);
+      static auto file_logger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(file_path);
       sinks.push_back(file_logger);
-      file_logger->set_level(SPDLOG_DEFAULT_LEVEL);
+      file_logger->set_level(file_level);
     }
 
     logger = std::make_shared<spdlog::logger>("main", sinks.begin(), sinks.end());
@@ -38,8 +53,8 @@ std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char* log_path, const
     spdlog::register_logger(logger);
     spdlog::set_default_logger(logger);
 
-    spdlog::set_level(SPDLOG_DEFAULT_LEVEL);
-    spdlog::cfg::load_env_levels(); // override console debug level through command line: SPDLOG_LEVEL=debug ./a.out
+    spdlog::set_level(stdout_level);
+    //spdlog::cfg::load_env_levels(); // override stdout debug level through command line: SPDLOG_LEVEL=debug ./a.out
 
     if (strlen(format) > 0)
       spdlog::set_pattern(format);
@@ -52,43 +67,29 @@ std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char* log_path, const
   return logger;
 }
 
-void spdlog_log_init(const char *log_path, const char *format)
+void spdlog_log_init(const char *format, const char *file_path, log_level_t file_lvl, log_level_t stdout_lvl)
 {
-  spdlog_log_init_impl(log_path, format);
+  spdlog_log_init_impl(format, file_path, to_spdlog(file_lvl), to_spdlog(stdout_lvl));
 }
 
 
 
 void spdlog_log_str_impl(const char* str, spdlog::level::level_enum lvl, spdlog::source_loc src_info)
 {
-  static auto logger = spdlog_log_init_impl("", "");
+  static auto logger = spdlog_log_init_impl();
 
   logger->log(src_info, lvl, str);
 }
 
 void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t src_info)
 {
-  switch(lvl)
-  {
-    case log_level_error:
-      spdlog_log_str_impl(str, spdlog::level::err, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
-      break;
-    case log_level_warning:
-      spdlog_log_str_impl(str, spdlog::level::warn, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
-      break;
-    case log_level_info:
-      spdlog_log_str_impl(str, spdlog::level::info, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
-      break;
-    case log_level_debug:
-      spdlog_log_str_impl(str, spdlog::level::debug, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
-      break;
-  }
+  spdlog_log_str_impl(str, to_spdlog(lvl), spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
 }
 
 log_level_t spdlog_log_level()
 {
   log_level_t ret;
-  static auto logger = spdlog_log_init_impl("", "");
+  static auto logger = spdlog_log_init_impl();
 
   switch(logger->level())
   {
