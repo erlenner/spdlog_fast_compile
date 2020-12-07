@@ -69,7 +69,7 @@ inline log_level_t log_level_from_env()
   if (env)
   {
     for (int i=(int)log_level_debug; i <= (int)log_level_error; ++i)
-      if (strcmp(env, to_string((log_level_t)i)) == 0)
+      if (strncmp(env, to_string((log_level_t)i), strlen(to_string((log_level_t)i))) == 0)
         stdout_lvl = (log_level_t)i;
   }
   return stdout_lvl;
