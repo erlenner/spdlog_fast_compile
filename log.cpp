@@ -53,7 +53,8 @@ std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char *format = "", co
     spdlog::register_logger(logger);
     spdlog::set_default_logger(logger);
 
-    spdlog::set_level(stdout_level);
+    spdlog::set_level(spdlog::level::trace);
+    stdout_logger->set_level(stdout_level);
     //spdlog::cfg::load_env_levels(); // override stdout debug level through command line: SPDLOG_LEVEL=debug ./a.out
 
     if (strlen(format) > 0)

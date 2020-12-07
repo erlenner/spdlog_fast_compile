@@ -66,9 +66,12 @@ inline log_level_t log_level_from_env()
   const char *env = getenv("LOG_LEVEL");
   printf("env: %s\n", env);
   log_level_t stdout_lvl = log_level_info;
-  for (int i=(int)log_level_debug; i<(int)log_level_error; ++i)
-    if (strcmp(env, to_string((log_level_t)i)) == 0)
-      stdout_lvl = (log_level_t)i;
+  if (env)
+  {
+    for (int i=(int)log_level_debug; i <= (int)log_level_error; ++i)
+      if (strcmp(env, to_string((log_level_t)i)) == 0)
+        stdout_lvl = (log_level_t)i;
+  }
   return stdout_lvl;
 }
 
