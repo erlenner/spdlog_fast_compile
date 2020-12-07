@@ -4,10 +4,13 @@
 #include <string>
 #include <cstring>
 #include <utility>
+#include <cassert>
 #else
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
+#include <assert.h>
 #endif
 
 // interface
@@ -61,19 +64,31 @@ typedef struct
 } log_src_info_t;
 #define create_log_src_info_t() { .file_name = __FILE__, .function_name = (const char*)(__FUNCTION__), .line_number = __LINE__ }
 
-inline log_level_t log_level_from_env()
+#ifdef __cplusplus
+extern "C"
 {
-  const char *env = getenv("LOG_LEVEL");
-  printf("env: %s\n", env);
-  log_level_t stdout_lvl = log_level_info;
-  if (env)
-  {
-    for (int i=(int)log_level_debug; i <= (int)log_level_error; ++i)
-      if (strncmp(env, to_string((log_level_t)i), strlen(to_string((log_level_t)i))) == 0)
-        stdout_lvl = (log_level_t)i;
-  }
-  return stdout_lvl;
-}
+#endif
+  log_level_t log_level(const char* cat);
+  log_level_t log_file_level(const char* cat);
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#define log_impl(fmt, lvl, ...) \
+do { \
+  static bool init = true; \
+  static bool should_log; \
+  if (init) \
+  { \
+    should_log = (lvl >= log_level("")) || (lvl >= log_file_level("")); \
+    init = false; \
+  } \
+  if (should_log) \
+  { \
+    log_src_info_t src_info = create_log_src_info_t(); \
+    log_format_impl(fmt, lvl, src_info, __VA_ARGS__); \
+  } \
+} while(0)
 
 // use spdlog by default
 #ifndef LOG_SPDLOG
@@ -85,18 +100,11 @@ inline log_level_t log_level_from_env()
   extern "C"
   {
   #endif
-    void spdlog_log_init(const char *format, const char *file_path, log_level_t file_lvl, log_level_t stdout_lvl);
-    #define log_init_impl(format, file_path, file_lvl) \
-    do{ \
-      log_level_t stdout_lvl = log_level_from_env(); \
-      spdlog_log_init(format, file_path, file_lvl, stdout_lvl); \
-    }while (0)
+    void spdlog_log_init(const char *format, const char *file_path);
+    #define log_init_impl spdlog_log_init
 
     void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t src_info);
     #define log_str_impl spdlog_log_str
-
-    log_level_t spdlog_log_level();
-    #define log_level_impl spdlog_log_level
   #ifdef __cplusplus
   } // extern "C"
   #endif
@@ -109,27 +117,19 @@ inline log_level_t log_level_from_env()
     #include <spdlog/fmt/fmt.h>
     #include <spdlog/fmt/bundled/ostream.h>
 
-    #define log_impl(_fmt, lvl, ...) do { \
-      if (lvl >= log_level()) \
-      { \
-        log_src_info_t src_info = create_log_src_info_t(); \
-        std::string str = fmt::format(_fmt, src_info, __VA_OPT__(,) __VA_ARGS__); \
-        log_str_impl(str.c_str(), lvl, src_info); \
-      } \
+    #define log_format_impl(_fmt, lvl, src_info, ...) do { \
+      std::string str = fmt::format(_fmt, src_info, __VA_OPT__(,) __VA_ARGS__); \
+      log_str_impl(str.c_str(), lvl, src_info); \
     } while(0)
 
   #elif defined(LOG_PRINTF)
 
     #define LOG_MAX_BUFFER_LENGTH 1024
 
-    #define log_impl(fmt, lvl, ...) do { \
-      if (lvl >= log_level()) \
-      { \
-        char buf[LOG_MAX_BUFFER_LENGTH]; \
-        log_src_info_t src_info = create_log_src_info_t(); \
-        snprintf(buf, sizeof(buf), fmt __VA_OPT__(,) __VA_ARGS__); \
-        log_str_impl(buf, lvl, src_info); \
-      } \
+    #define log_format_impl(fmt, lvl, src_info, ...) do { \
+      char buf[LOG_MAX_BUFFER_LENGTH]; \
+      snprintf(buf, sizeof(buf), fmt __VA_OPT__(,) __VA_ARGS__); \
+      log_str_impl(buf, lvl, src_info); \
     } while(0)
 
   #else

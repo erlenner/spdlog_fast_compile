@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #define SPDLOG_EOL ""
 #include <spdlog/spdlog.h>
 #include <spdlog/cfg/env.h>
@@ -29,33 +31,35 @@ spdlog::level::level_enum to_spdlog(log_level_t lvl)
   }
 }
 
-std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char *format = "", const char* file_path = "", spdlog::level::level_enum file_level = SPDLOG_DEFAULT_LEVEL, spdlog::level::level_enum stdout_level = SPDLOG_DEFAULT_LEVEL)
+struct logger_t
 {
-  static std::shared_ptr<spdlog::logger> logger;
+  std::shared_ptr<spdlog::logger> stdout_logger;
+  std::shared_ptr<spdlog::logger> file_logger;
+};
+
+const logger_t& spdlog_get_loggers(const char *format = "", const char* file_path = "")
+{
+  static logger_t loggers;
 
   static bool first_run = true;
   if (first_run)
   {
-    static std::vector<spdlog::sink_ptr> sinks;
 
-    static auto stdout_logger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    sinks.push_back(stdout_logger);
+    auto stdout_logger = spdlog::stdout_color_mt("stdout");
+    //spdlog::register_logger(stdout_logger);
+    //spdlog::set_default_logger(stdout_logger);
+    stdout_logger->set_level(spdlog::level::trace);
+    loggers.stdout_logger = std::move(stdout_logger);
 
     if (strlen(file_path) > 0)
     {
-      static auto file_logger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(file_path);
-      sinks.push_back(file_logger);
-      file_logger->set_level(file_level);
+      auto file_logger = spdlog::basic_logger_mt("file", file_path);
+      file_logger->set_level(spdlog::level::trace);
+      //spdlog::register_logger(file_logger);
+      loggers.file_logger = std::move(file_logger);
     }
 
-    logger = std::make_shared<spdlog::logger>("main", sinks.begin(), sinks.end());
-
-    spdlog::register_logger(logger);
-    spdlog::set_default_logger(logger);
-
     spdlog::set_level(spdlog::level::trace);
-    stdout_logger->set_level(stdout_level);
-    //spdlog::cfg::load_env_levels(); // override stdout debug level through command line: SPDLOG_LEVEL=debug ./a.out
 
     if (strlen(format) > 0)
       spdlog::set_pattern(format);
@@ -65,49 +69,96 @@ std::shared_ptr<spdlog::logger> spdlog_log_init_impl(const char *format = "", co
     first_run = false;
   }
 
-  return logger;
+  return loggers;
 }
 
-void spdlog_log_init(const char *format, const char *file_path, log_level_t file_lvl, log_level_t stdout_lvl)
+void spdlog_log_init(const char *format, const char *file_path)
 {
-  spdlog_log_init_impl(format, file_path, to_spdlog(file_lvl), to_spdlog(stdout_lvl));
+  if (format == NULL)
+    format = "";
+  if (file_path == NULL)
+    file_path = "";
+  spdlog_get_loggers(format, file_path); // first call initializes logger
 }
 
-
-
-void spdlog_log_str_impl(const char* str, spdlog::level::level_enum lvl, spdlog::source_loc src_info)
+void spdlog_log_str_impl(const char* str, log_level_t lvl, spdlog::source_loc src_info)
 {
-  static auto logger = spdlog_log_init_impl();
+  static auto loggers = spdlog_get_loggers();
+  static log_level_t log_lvl;
+  static log_level_t log_file_lvl;
+  static bool init = true;
+  if (init)
+  {
+    log_lvl = log_level("");
+    log_file_lvl = log_file_level("");
+    init = false;
+  }
 
-  logger->log(src_info, lvl, str);
+  auto spdlog_lvl = to_spdlog(lvl);
+
+  if (lvl >= log_lvl)
+    loggers.stdout_logger->log(src_info, spdlog_lvl, str);
+
+  if ((loggers.file_logger) && (lvl >= log_file_lvl))
+    loggers.file_logger->log(src_info, spdlog_lvl, str);
 }
 
 void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t src_info)
 {
-  spdlog_log_str_impl(str, to_spdlog(lvl), spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
+  spdlog_log_str_impl(str, lvl, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
 }
 
-log_level_t spdlog_log_level()
+
+log_level_t log_level(const char* cat)
 {
-  log_level_t ret;
-  static auto logger = spdlog_log_init_impl();
-
-  switch(logger->level())
+  log_level_t ref_lvl = log_level_info;
+  const char *env = getenv("LOG_LEVEL");
+  if (env)
   {
-    case spdlog::level::err:
-      ret = log_level_error;
-      break;
-    case spdlog::level::warn:
-      ret = log_level_warning;
-      break;
-    case spdlog::level::info:
-      ret = log_level_info;
-      break;
-    case spdlog::level::debug:
-    default:
-      ret = log_level_debug;
-      break;
-  }
 
-  return ret;
+    if (strlen(cat) == 0)
+    {
+      for (int i=(int)log_level_debug; i <= (int)log_level_error; ++i)
+        if (strncmp(env, to_string((log_level_t)i), strlen(to_string((log_level_t)i))) == 0)
+          ref_lvl = (log_level_t)i;
+    }
+    else
+    {
+      for (const char* c = env; (c != NULL) && (c[1] != '\0'); c = strchr(c+1, ','))
+      {
+        if (*c == ',')
+          ++c;
+        if (strncmp(c, cat, strlen(cat)) == 0)
+        {
+          const char *cc = strchr(c, ':');
+          const char *nc = strchr(c, ',');
+
+          if ((cc != NULL) && (cc[1] != '\0')
+            && ((nc == NULL) || (nc[1] == '\0') || (nc > cc)))
+          {
+            for (int i=(int)log_level_debug; i <= (int)log_level_error; ++i)
+              if (strncmp(cc+1, to_string((log_level_t)i), strlen(to_string((log_level_t)i))) == 0)
+                ref_lvl = (log_level_t)i;
+          }
+        }
+      }
+    }
+  }
+  return ref_lvl;
+}
+
+log_level_t log_file_level(const char* cat)
+{
+  const char* file_cat_suffix;
+  if (strlen(cat) == 0)
+    file_cat_suffix = "FILE";
+  else
+    file_cat_suffix = "_FILE";
+
+  const int file_cat_max_size = 1024;
+  char file_cat[file_cat_max_size];
+  int written = snprintf(file_cat, sizeof(file_cat), "%s%s", cat, file_cat_suffix);
+  assert(written < file_cat_max_size);
+
+  return log_level(file_cat);
 }

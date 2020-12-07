@@ -29,7 +29,7 @@ std::ostream& operator<<(std::ostream& os, const S& rhs)
 
 int main()
 {
-  log_init("", "/tmp/out.log", log_level_debug);
+  log_init("", "/tmp/out.log");
 
   log_debug("hei %d\n", 3);
   log_debug("hei {}\n", 4);
