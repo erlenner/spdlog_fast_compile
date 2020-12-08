@@ -65,6 +65,14 @@ typedef struct
 extern "C"
 {
 #endif
+  /*
+    reads the log level from the LOG_LEVEL environment variable.
+    Optional global / fallback level first, then key values of categories and debug level.
+    Examples:
+      LOG_LEVEL=error ./my_program
+      LOG_LEVEL=debug,my_category:error,FILE_my_category:error ./my_program
+      LOG_LEVEL=FILE*:error,my_*e*ry:info ./my_program
+  */
   log_level_t log_level(const char* cat);
 #ifdef __cplusplus
 } // extern "C"
