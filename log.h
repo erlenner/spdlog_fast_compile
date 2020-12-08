@@ -89,8 +89,7 @@ typedef struct
 extern "C"
 {
 #endif
-  log_level_t log_level_cat(const char* cat);
-  log_level_t log_level_file(const char* cat);
+  log_level_t log_level(const char* cat);
 #ifdef __cplusplus
 } // extern "C"
 #endif
@@ -106,8 +105,8 @@ do { \
       .file_name = __FILE__, \
       .function_name = (const char*)(__FUNCTION__), \
       .line_number = __LINE__, \
-      .write_stdout = (lvl >= log_level_cat(cat)), \
-      .write_file = (lvl >= log_level_file(cat)), \
+      .write_stdout = (lvl >= log_level(cat)), \
+      .write_file = (lvl >= log_level("FILE_" cat)), \
     }; \
     init = false; \
   } \
