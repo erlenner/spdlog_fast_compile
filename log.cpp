@@ -81,31 +81,24 @@ void spdlog_log_init(const char *format, const char *file_path)
   spdlog_get_loggers(format, file_path); // first call initializes logger
 }
 
-void spdlog_log_str_impl(const char* str, log_level_t lvl, spdlog::source_loc src_info)
+void spdlog_log_str_impl(const char* str, log_level_t lvl, log_src_info_t src_info)
 {
   static auto loggers = spdlog_get_loggers();
-  static log_level_t log_lvl;
-  static log_level_t log_file_lvl;
-  static bool init = true;
-  if (init)
-  {
-    log_lvl = log_level("");
-    log_file_lvl = log_file_level("");
-    init = false;
-  }
+
+  spdlog::source_loc spdlog_src_info = spdlog::source_loc{ src_info.file_name, src_info.line_number, src_info.function_name };
 
   auto spdlog_lvl = to_spdlog(lvl);
 
-  if (lvl >= log_lvl)
-    loggers.stdout_logger->log(src_info, spdlog_lvl, str);
+  if (src_info.write_stdout)
+    loggers.stdout_logger->log(spdlog_src_info, spdlog_lvl, str);
 
-  if ((loggers.file_logger) && (lvl >= log_file_lvl))
-    loggers.file_logger->log(src_info, spdlog_lvl, str);
+  if ((loggers.file_logger) && (src_info.write_file))
+    loggers.file_logger->log(spdlog_src_info, spdlog_lvl, str);
 }
 
 void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t src_info)
 {
-  spdlog_log_str_impl(str, lvl, spdlog::source_loc{src_info.file_name, src_info.line_number, src_info.function_name});
+  spdlog_log_str_impl(str, lvl, src_info);
 }
 
 
@@ -128,16 +121,22 @@ log_level_t log_level(const char* cat)
       {
         if (*c == ',')
           ++c;
-        if (strncmp(c, cat, strlen(cat)) == 0)
-        {
-          const char *cc = strchr(c, ':');
-          const char *nc = strchr(c, ',');
 
-          if ((cc != NULL) && (cc[1] != '\0')
-            && ((nc == NULL) || (nc[1] == '\0') || (nc > cc)))
+        int cat_len = 0;
+        for (const char *i = c; *i != '\0'; ++i)
+          if ((*i == '*') || (*i == '\0'))
+            cat_len = i - c;
+
+        if (strncmp(c, cat, cat_len) == 0)
+        {
+          const char *next_colon = strchr(c, ':');
+          const char *next_comma = strchr(c, ',');
+
+          if ((next_colon != NULL) && (next_colon[1] != '\0')
+            && ((next_comma == NULL) || (next_comma[1] == '\0') || (next_comma > next_colon)))
           {
             for (int i=(int)log_level_debug; i <= (int)log_level_error; ++i)
-              if (strncmp(cc+1, to_string((log_level_t)i), strlen(to_string((log_level_t)i))) == 0)
+              if (strncmp(next_colon+1, to_string((log_level_t)i), strlen(to_string((log_level_t)i))) == 0)
                 ref_lvl = (log_level_t)i;
           }
         }

@@ -61,8 +61,16 @@ typedef struct
   const char* file_name;
   const char* function_name;
   int line_number;
+  bool write_stdout;
+  bool write_file;
 } log_src_info_t;
-#define create_log_src_info_t() { .file_name = __FILE__, .function_name = (const char*)(__FUNCTION__), .line_number = __LINE__ }
+#define create_log_src_info_t() { \
+  .file_name = __FILE__, \
+  .function_name = (const char*)(__FUNCTION__), \
+  .line_number = __LINE__, \
+  .write_stdout = false, \
+  .write_file = false, \
+}
 
 #ifdef __cplusplus
 extern "C"
@@ -77,15 +85,24 @@ extern "C"
 #define log_impl(fmt, lvl, ...) \
 do { \
   static bool init = true; \
-  static bool should_log; \
+  static bool write_stdout; \
+  static bool write_file; \
   if (init) \
   { \
-    should_log = (lvl >= log_level("")) || (lvl >= log_file_level("")); \
+    write_stdout = (lvl >= log_level("")); \
+    write_file = (lvl >= log_file_level("")); \
     init = false; \
   } \
-  if (should_log) \
+  if (write_stdout || write_file) \
   { \
-    log_src_info_t src_info = create_log_src_info_t(); \
+    log_src_info_t src_info = \
+    { \
+      .file_name = __FILE__, \
+      .function_name = (const char*)(__FUNCTION__), \
+      .line_number = __LINE__, \
+      .write_stdout = write_stdout, \
+      .write_file = write_file, \
+    }; \
     log_format_impl(fmt, lvl, src_info, __VA_ARGS__); \
   } \
 } while(0)
