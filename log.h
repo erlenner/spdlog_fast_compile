@@ -81,7 +81,7 @@ do { \
     \
     src_info = (log_src_info_t) { \
       .file_name = __FILE__, \
-      .function_name = (const char*)(__FUNCTION__), \
+      .function_name = (const char*)((cat && strlen(cat)) ? cat : __FUNCTION__), \
       .line_number = __LINE__, \
       .write_stdout = (lvl >= log_level(cat)), \
       .write_file = (lvl >= log_level(file_cat)), \
