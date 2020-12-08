@@ -32,6 +32,23 @@ spdlog::level::level_enum to_spdlog(log_level_t lvl)
   }
 }
 
+const char* to_string(log_level_t lvl)
+{
+  switch(lvl)
+  {
+    case log_level_error:
+      return "error";
+    case log_level_warning:
+      return "warning";
+    case log_level_info:
+      return "info";
+    case log_level_debug:
+      return "debug";
+    default:
+      return "unknown";
+  }
+}
+
 struct logger_t
 {
   std::shared_ptr<spdlog::logger> stdout_logger;
@@ -184,6 +201,8 @@ log_level_t log_level(const char* cat)
         ref_lvl = log_level("");
     }
   }
+  else
+    ref_lvl = log_level_info;
 
   return ref_lvl;
 }

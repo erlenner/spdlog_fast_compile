@@ -51,23 +51,6 @@
 
 typedef enum { log_level_debug, log_level_info, log_level_warning, log_level_error } log_level_t;
 
-const char* to_string(log_level_t lvl)
-{
-  switch(lvl)
-  {
-    case log_level_error:
-      return "error";
-    case log_level_warning:
-      return "warning";
-    case log_level_info:
-      return "info";
-    case log_level_debug:
-      return "debug";
-    default:
-      return "unknown";
-  }
-}
-
 // struct for recording the origin of the log function call
 typedef struct
 {
