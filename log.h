@@ -14,29 +14,40 @@
 #endif
 
 // interface
-#define log_log(lvl, fmt, ...) log_impl(fmt, lvl, __VA_ARGS__)
+#define log_log(lvl, fmt, ...) log_cat_log("", lvl, fmt, __VA_ARGS__)
 #define log_error(...) log_log(log_level_error, __VA_ARGS__)
 #define log_warning(...) log_log(log_level_warning, __VA_ARGS__)
 #define log_info(...) log_log(log_level_info, __VA_ARGS__)
 #define log_debug(...) log_log(log_level_debug, __VA_ARGS__)
 
+#define log_cat_log(cat, lvl, fmt, ...) log_impl(fmt, lvl, cat, __VA_ARGS__)
+#define log_cat_error(cat, ...) log_cat_log(cat, log_level_error, __VA_ARGS__)
+#define log_cat_warning(cat, ...) log_cat_log(cat, log_level_warning, __VA_ARGS__)
+#define log_cat_info(cat, ...) log_cat_log(cat, log_level_info, __VA_ARGS__)
+#define log_cat_debug(cat, ...) log_cat_log(cat, log_level_debug, __VA_ARGS__)
+
 #define log_init log_init_impl
 #define log_str log_str_impl
 #define log_level log_level_impl
 
-#define log_once(...) do{ \
+#define log_once(log_func, ...) do{ \
   static int run = 1; \
   if (run) \
   { \
-    log_log(__VA_ARGS__); \
+    log_func(__VA_ARGS__); \
     run = 0; \
   } \
 } while(0)
 
-#define log_error_once(...) log_once(log_level_error, __VA_ARGS__)
-#define log_warning_once(...) log_once(log_level_warning, __VA_ARGS__)
-#define log_info_once(...) log_once(log_level_info, __VA_ARGS__)
-#define log_debug_once(...) log_once(log_level_debug, __VA_ARGS__)
+#define log_once_error(...)   log_once(log_error, __VA_ARGS__)
+#define log_once_warning(...) log_once(log_warning, __VA_ARGS__)
+#define log_once_info(...)    log_once(log_info, __VA_ARGS__)
+#define log_once_debug(...)   log_once(log_debug, __VA_ARGS__)
+
+#define log_cat_once_error(...)   log_once(log_cat_error, __VA_ARGS__)
+#define log_cat_once_warning(...) log_once(log_cat_warning, __VA_ARGS__)
+#define log_cat_once_info(...)    log_once(log_cat_info, __VA_ARGS__)
+#define log_cat_once_debug(...)   log_once(log_cat_debug, __VA_ARGS__)
 
 typedef enum { log_level_debug, log_level_info, log_level_warning, log_level_error } log_level_t;
 
@@ -84,28 +95,25 @@ extern "C"
 } // extern "C"
 #endif
 
-#define log_impl(fmt, lvl, ...) \
+#define log_impl(fmt, lvl, cat, ...) \
 do { \
   static bool init = true; \
-  static bool write_stdout; \
-  static bool write_file; \
+  static log_src_info_t src_info; \
   if (init) \
   { \
-    write_stdout = (lvl >= log_level_cat("")); \
-    write_file = (lvl >= log_level_file("")); \
-    init = false; \
-  } \
-  if (write_stdout || write_file) \
-  { \
-    log_src_info_t src_info = \
-    { \
+    src_info = \
+    (log_src_info_t) { \
       .file_name = __FILE__, \
       .function_name = (const char*)(__FUNCTION__), \
       .line_number = __LINE__, \
-      .write_stdout = write_stdout, \
-      .write_file = write_file, \
+      .write_stdout = (lvl >= log_level_cat(cat)), \
+      .write_file = (lvl >= log_level_file(cat)), \
     }; \
-    log_format_impl(fmt, lvl, src_info, __VA_ARGS__); \
+    init = false; \
+  } \
+  if (src_info.write_stdout || src_info.write_file) \
+  { \
+    log_format_impl(fmt, lvl, &src_info, __VA_ARGS__); \
   } \
 } while(0)
 
@@ -122,7 +130,7 @@ do { \
     void spdlog_log_init(const char *format, const char *file_path);
     #define log_init_impl spdlog_log_init
 
-    void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t src_info);
+    void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t* src_info);
     #define log_str_impl spdlog_log_str
   #ifdef __cplusplus
   } // extern "C"

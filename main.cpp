@@ -44,7 +44,10 @@ int main()
   {
     log_debug("loopityloop\n");
 
-    log_error_once("loopityloop\n");
+    log_cat_debug("thecat", "CAAAAAAAAAAT\n");
+    log_cat_once_error("thecat", "WRONG CAt\n");
+
+    log_once_error("loopityloop\n");
 
     //S s = { .a = 1, .b = 2, };
     //log_debug("s: {}\n", s);

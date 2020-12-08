@@ -27,7 +27,7 @@ int main()
   {
     log_debug("loopityloop\n");
 
-    log_error_once("loopityloop\n");
+    log_once_error("loopityloop\n");
 
     usleep(100000);
   }

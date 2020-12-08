@@ -82,22 +82,22 @@ void spdlog_log_init(const char *format, const char *file_path)
   spdlog_get_loggers(format, file_path); // first call initializes logger
 }
 
-void spdlog_log_str_impl(const char* str, log_level_t lvl, log_src_info_t src_info)
+void spdlog_log_str_impl(const char* str, log_level_t lvl, log_src_info_t* src_info)
 {
   static auto loggers = spdlog_get_loggers();
 
-  spdlog::source_loc spdlog_src_info = spdlog::source_loc{ src_info.file_name, src_info.line_number, src_info.function_name };
+  spdlog::source_loc spdlog_src_info = spdlog::source_loc{ src_info->file_name, src_info->line_number, src_info->function_name };
 
   auto spdlog_lvl = to_spdlog(lvl);
 
-  if (src_info.write_stdout)
+  if (src_info->write_stdout)
     loggers.stdout_logger->log(spdlog_src_info, spdlog_lvl, str);
 
-  if ((loggers.file_logger) && (src_info.write_file))
+  if ((loggers.file_logger) && (src_info->write_file))
     loggers.file_logger->log(spdlog_src_info, spdlog_lvl, str);
 }
 
-void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t src_info)
+void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t* src_info)
 {
   spdlog_log_str_impl(str, lvl, src_info);
 }
@@ -183,7 +183,7 @@ log_level_t log_level_file(const char* cat)
     const char* file_cat_prefix = LOG_FILE_CAT_ID "_";
 
     char file_cat[1024];
-    snprintf(file_cat, sizeof(file_cat), "%s%s", cat, file_cat_prefix);
+    snprintf(file_cat, sizeof(file_cat), "%s%s", file_cat_prefix, cat);
 
     log_level_t lvl = log_level(file_cat);
     if ((int)lvl == -1)
