@@ -24,6 +24,7 @@ spdlog::level::level_enum to_spdlog(log_level_t lvl)
       return spdlog::level::err;
     case log_level_warning:
       return spdlog::level::warn;
+    default:
     case log_level_info:
       return spdlog::level::info;
     case log_level_debug:
@@ -102,14 +103,13 @@ void spdlog_log_str(const char* str, log_level_t lvl, log_src_info_t src_info)
 }
 
 
-log_level_t log_level(const char* cat)
+log_level_t log_level(const char* key)
 {
-  log_level_t ref_lvl = log_level_info;
+  log_level_t ref_lvl = (log_level_t)-1;
   const char *env = getenv("LOG_LEVEL");
   if (env)
   {
-
-    if (strlen(cat) == 0)
+    if ((key == NULL) || strlen(key) == 0)
     {
       for (int i=(int)log_level_debug; i <= (int)log_level_error; ++i)
         if (strncmp(env, to_string((log_level_t)i), strlen(to_string((log_level_t)i))) == 0)
@@ -122,12 +122,12 @@ log_level_t log_level(const char* cat)
         if (*c == ',')
           ++c;
 
-        int cat_len = 0;
+        int key_len = 0;
         for (const char *i = c; *i != '\0'; ++i)
           if ((*i == '*') || (*i == '\0'))
-            cat_len = i - c;
+            key_len = i - c;
 
-        if (strncmp(c, cat, cat_len) == 0)
+        if (strncmp(c, key, key_len) == 0)
         {
           const char *next_colon = strchr(c, ':');
           const char *next_comma = strchr(c, ',');
@@ -143,21 +143,52 @@ log_level_t log_level(const char* cat)
       }
     }
   }
+
   return ref_lvl;
 }
 
-log_level_t log_file_level(const char* cat)
+log_level_t log_level_cat(const char* cat)
 {
-  const char* file_cat_suffix;
-  if (strlen(cat) == 0)
-    file_cat_suffix = "FILE";
+  if ((cat == NULL) || (strlen(cat) == 0))
+  {
+    log_level_t lvl = log_level("");
+    if ((int)lvl == -1)
+      return log_level_info;
+    else
+      return lvl;
+  }
   else
-    file_cat_suffix = "_FILE";
+  {
+    log_level_t lvl = log_level(cat);
+    if ((int)lvl == -1)
+      return log_level_cat("");
+    else
+      return lvl;
+  }
+}
 
-  const int file_cat_max_size = 1024;
-  char file_cat[file_cat_max_size];
-  int written = snprintf(file_cat, sizeof(file_cat), "%s%s", cat, file_cat_suffix);
-  assert(written < file_cat_max_size);
+log_level_t log_level_file(const char* cat)
+{
+  #define LOG_FILE_CAT_ID "FILE"
+  if ((cat == NULL) || (strlen(cat) == 0))
+  {
+    log_level_t lvl = log_level(LOG_FILE_CAT_ID);
+    if ((int)lvl == -1)
+      return log_level_info;
+    else
+      return lvl;
+  }
+  else
+  {
+    const char* file_cat_prefix = LOG_FILE_CAT_ID "_";
 
-  return log_level(file_cat);
+    char file_cat[1024];
+    snprintf(file_cat, sizeof(file_cat), "%s%s", cat, file_cat_prefix);
+
+    log_level_t lvl = log_level(file_cat);
+    if ((int)lvl == -1)
+      return log_level_file("");
+    else
+      return lvl;
+  }
 }

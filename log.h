@@ -52,6 +52,8 @@ const char* to_string(log_level_t lvl)
       return "info";
     case log_level_debug:
       return "debug";
+    default:
+      return "unknown";
   }
 }
 
@@ -76,8 +78,8 @@ typedef struct
 extern "C"
 {
 #endif
-  log_level_t log_level(const char* cat);
-  log_level_t log_file_level(const char* cat);
+  log_level_t log_level_cat(const char* cat);
+  log_level_t log_level_file(const char* cat);
 #ifdef __cplusplus
 } // extern "C"
 #endif
@@ -89,8 +91,8 @@ do { \
   static bool write_file; \
   if (init) \
   { \
-    write_stdout = (lvl >= log_level("")); \
-    write_file = (lvl >= log_file_level("")); \
+    write_stdout = (lvl >= log_level_cat("")); \
+    write_file = (lvl >= log_level_file("")); \
     init = false; \
   } \
   if (write_stdout || write_file) \
