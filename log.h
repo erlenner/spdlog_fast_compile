@@ -93,13 +93,15 @@ do { \
   static log_src_info_t src_info; \
   if (init) \
   { \
-    src_info = \
-    (log_src_info_t) { \
+    char file_cat[1024]; \
+    snprintf(file_cat, sizeof(file_cat), "%s%s", "FILE_", cat); \
+    \
+    src_info = (log_src_info_t) { \
       .file_name = __FILE__, \
       .function_name = (const char*)(__FUNCTION__), \
       .line_number = __LINE__, \
       .write_stdout = (lvl >= log_level(cat)), \
-      .write_file = (lvl >= log_level("FILE_" cat)), \
+      .write_file = (lvl >= log_level(file_cat)), \
     }; \
     init = false; \
   } \
