@@ -144,7 +144,7 @@ do { \
     #include <spdlog/fmt/bundled/ostream.h>
 
     #define log_format_impl(_fmt, lvl, src_info, ...) do { \
-      std::string str = fmt::format(_fmt, src_info, __VA_OPT__(,) __VA_ARGS__); \
+      std::string str = fmt::format(_fmt __VA_OPT__(,) __VA_ARGS__); \
       log_str_impl(str.c_str(), lvl, src_info); \
     } while(0)
 
