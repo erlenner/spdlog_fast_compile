@@ -77,13 +77,6 @@ typedef struct
   bool write_stdout;
   bool write_file;
 } log_src_info_t;
-#define create_log_src_info_t() { \
-  .file_name = __FILE__, \
-  .function_name = (const char*)(__FUNCTION__), \
-  .line_number = __LINE__, \
-  .write_stdout = false, \
-  .write_file = false, \
-}
 
 #ifdef __cplusplus
 extern "C"
@@ -150,10 +143,8 @@ do { \
 
   #elif defined(LOG_PRINTF)
 
-    #define LOG_MAX_BUFFER_LENGTH 1024
-
     #define log_format_impl(fmt, lvl, src_info, ...) do { \
-      char buf[LOG_MAX_BUFFER_LENGTH]; \
+      char buf[1024]; \
       snprintf(buf, sizeof(buf), fmt __VA_OPT__(,) __VA_ARGS__); \
       log_str_impl(buf, lvl, src_info); \
     } while(0)
