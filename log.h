@@ -66,8 +66,9 @@ extern "C"
 {
 #endif
   /*
-    reads the log level from the LOG_LEVEL environment variable.
+    Reads the log level from the LOG_LEVEL environment variable.
     Optional global / fallback level first, then key values of categories and debug level.
+    Default category is function name.
     Examples:
       LOG_LEVEL=error ./my_program
       LOG_LEVEL=debug,my_category:error,FILE_my_category:error ./my_program
@@ -78,18 +79,19 @@ extern "C"
 } // extern "C"
 #endif
 
-#define log_impl(fmt, lvl, cat, ...) \
+#define log_impl(fmt, lvl, category, ...) \
 do { \
   static bool init = true; \
   static log_src_info_t src_info; \
   if (init) \
   { \
+    const char *cat = (const char*)((category && strlen(category)) ? category : __FUNCTION__); \
     char file_cat[1024]; \
     snprintf(file_cat, sizeof(file_cat), "%s%s", "FILE_", cat); \
     \
     src_info = (log_src_info_t) { \
       .file_name = __FILE__, \
-      .function_name = (const char*)((cat && strlen(cat)) ? cat : __FUNCTION__), \
+      .function_name = cat, \
       .line_number = __LINE__, \
       .write_stdout = (lvl >= log_level(cat)), \
       .write_file = (lvl >= log_level(file_cat)), \
