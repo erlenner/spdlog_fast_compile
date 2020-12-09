@@ -7,7 +7,7 @@ project (spdlog_fast_compile)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall")
 
 add_library(log SHARED log.cpp)
-target_link_libraries(log)
+target_link_libraries(log -lfmt)
 install(TARGETS log DESTINATION lib)
 
 add_executable(cpplog main.cpp)

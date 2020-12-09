@@ -128,8 +128,8 @@ do { \
       #error fmt formatting is only available for C++, not C
     #endif
 
-    #include <spdlog/fmt/fmt.h>
-    #include <spdlog/fmt/bundled/ostream.h>
+    #include <fmt/format.h>
+    #include <fmt/ostream.h>
 
     #define log_format_impl(_fmt, lvl, src_info, ...) do { \
       std::string str = fmt::format(_fmt __VA_OPT__(,) __VA_ARGS__); \

@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+#define SPDLOG_FMT_EXTERNAL
 #define SPDLOG_EOL ""
 #include <spdlog/spdlog.h>
 #include <spdlog/cfg/env.h>
